@@ -72,7 +72,7 @@ function monitorContainer(containerName, notifyDiscord) {
             // A full solution would parse the header to see if it's stdout/stderr.
             const message = chunk.toString('utf8').substring(8).trim();
             if (message.includes("error")) {
-                discordWebhook.send(`**[${containerName}]** \n\`\`\`fix\n${message}\n\`\`\``);
+                discordWebhook.send(`\`\`\`ansi\n**[${containerName}]** [2;30m[2;31m${message}[0m[2;30m[0m\`\`\``);
                 
             } else {
                 discordWebhook.send(`**[${containerName}]** ${message}`);
