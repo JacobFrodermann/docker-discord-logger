@@ -71,7 +71,12 @@ function monitorContainer(containerName, notifyDiscord) {
             // For simplicity here, we just strip the header and process.
             // A full solution would parse the header to see if it's stdout/stderr.
             const message = chunk.toString('utf8').substring(8).trim();
-            discordWebhook.send(`**[${containerName}]** ${message}`);
+            if (message.includes("error msg")) {
+                discordWebhook.send('**[${containerName}]** \n```fix\n${message}\n```');
+                
+            } else {
+                discordWebhook.send(`**[${containerName}]** ${message}`);
+            }
         });
 
         stream.on('end', () => {

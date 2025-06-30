@@ -3,11 +3,11 @@ version: "3.4"
 services:
   docker-discord-logger:
     container_name: docker-discord-logger
-    image: ghcr.io/1randomdev/docker-discord-logger:latest
+    build: .
     network_mode: bridge
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - CONTAINERS=Container1:Container2:Container3
-      - WEBHOOK_URL=<discord webhook url>
+      - WEBHOOK_URL=https://discord.com/api/webhooks/1389227339296149606/pQHCWkc5JMzjXnEBozzIcVLxd9rkF62NiRl4rmGFlMZyqokahOjzyXH2KgF8-OogGLX_
     restart: unless-stopped
