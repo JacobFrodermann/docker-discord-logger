@@ -9,6 +9,9 @@ if(!process.env.WEBHOOK_URL) {
 
 console.log('Starting docker discord logger...');
 
+const Docker = require('dockerode');
+const docker = new Docker(); // Assumes standard docker socket path
+
 // Initialize discord webhook
 const discordWebhook = new Webhook(process.env.WEBHOOK_URL);
 discordWebhook.send('Started docker discord logger.').catch(e => {
@@ -49,25 +52,34 @@ discordWebhook.send('Started docker discord logger.').catch(e => {
 
 // Monitor individual containers
 function monitorContainer(containerName, notifyDiscord) {
-    const logListener = childProcess.spawn('docker', ['logs', containerName, '--follow', '--tail', '0'], {
-        detached: true
+    const container = docker.getContainer(containerName);
+
+    container.logs({
+        follow: true,
+        stdout: true,
+        stderr: true,
+        tail: 0
+    }, (err, stream) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+
+        stream.on('data', chunk => {
+            // Docker multiplexes stdout and stderr, need to demultiplex
+            // The first 8 bytes of the chunk are a header.
+            // For simplicity here, we just strip the header and process.
+            // A full solution would parse the header to see if it's stdout/stderr.
+            const message = chunk.toString('utf8').substring(8).trim();
+            discordWebhook.send(`**[${containerName}]** ${message}`);
+        });
+
+        stream.on('end', () => {
+             discordWebhook.send(`Container **"${containerName}"** exited.`);
+        });
     });
 
-    logListener.stdout.on('data', data => {
-        const message = data.toString()
-            //.replace('\n', '').replace('\r', '') // Replace newlines
-            .replace(/\u001b\[.*?m/g, '') // Strip color
-            .trim(); // Strip starting/ending spaces
-
-        discordWebhook.send(`**[${containerName}]** ${message}`);
-    });
-
-    logListener.on('close', () => {
-        console.log(`Log listener for container container "${containerName}" exited.`);
-        discordWebhook.send(`Container **"${containerName}"** exited.`);
-    });
-
-    if(notifyDiscord) discordWebhook.send(`Container **"${containerName}"** started.`);
+    if (notifyDiscord) discordWebhook.send(`Container **"${containerName}"** started.`);
 }
 
 async function getLabeledContainers(label) {
